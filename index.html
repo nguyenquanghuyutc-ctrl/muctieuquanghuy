@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lalia Strategy OS - v3.3 Stable</title>
+    <title>Lalia Strategy OS - v3.4 Ultimate</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -22,7 +22,7 @@
         .expanded > .child-container { max-height: 5000px; transition: max-height 0.7s ease-in; }
         .rotate-icon { transition: transform 0.3s; }
         .expanded > .parent-card .rotate-icon { transform: rotate(90deg); }
-        .gantt-container { overflow-x: auto; background: white; border-radius: 1rem; padding: 1rem; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.05); }
+        .gantt-container { overflow-x: auto; background: white; border-radius: 1rem; padding: 1rem; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.05); min-height: 300px; }
         .gantt .bar-label { fill: #475569; font-weight: 600; font-size: 11px; }
         .gantt .bar { fill: #818cf8; }
         #toast { visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center; border-radius: 12px; padding: 16px; position: fixed; z-index: 100; right: 30px; bottom: 30px; opacity: 0; transition: 0.5s; }
@@ -85,6 +85,9 @@
     <div id="toast">Cập nhật thành công!</div>
 
     <script>
+        // ==========================================
+        // DÁN LẠI LINK API CỦA ANH VÀO ĐÂY
+        // ==========================================
         const CONFIG = {
             API: "https://script.google.com/macros/s/AKfycbwLvw4IokxWKCPIZwVE0qTxNZEAsdvVwds3hwrqZh_XtaBZU8kmMbrGlFGSHMd1Au5I/exec",
             TOKEN: "CEO_HUY_LALIA_2026"
@@ -93,27 +96,43 @@
         let rawData = [];
         let ganttInstance = null;
 
-        // VÁ LỖI 1: Hàm dịch ngày hiển thị (DD/MM/YYYY)
-        const formatDisplayDate = (isoString) => {
-            if (!isoString || isoString === "N/A" || isoString.trim() === "") return "Chưa có hạn";
+        // ==========================================
+        // BỘ PHÂN TÍCH NGÀY BẤT TỬ (BULLETPROOF DATE PARSER)
+        // ==========================================
+        function normalizeDateToYMD(raw) {
+            if (!raw || raw === "N/A" || String(raw).trim() === "") return null;
+            let str = String(raw).trim();
+            
+            // Xử lý chuỗi nhập tay DD/MM/YYYY (VD: 27/04/2026)
+            if (str.includes('/')) {
+                const parts = str.split(' ')[0].split('/'); 
+                if (parts.length === 3) {
+                    const day = parts[0].padStart(2, '0');
+                    const month = parts[1].padStart(2, '0');
+                    const year = parts[2];
+                    if (year.length === 4) return `${year}-${month}-${day}`;
+                }
+            }
+            
+            // Xử lý chuỗi ISO do AppSheet trả về (VD: 2026-04-27T...)
             try {
-                const d = new Date(isoString);
-                if (isNaN(d.getTime())) return isoString;
-                return d.toLocaleDateString('vi-VN');
-            } catch(e) { return isoString; }
-        };
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${day}`;
+                }
+            } catch(e) {}
+            return null;
+        }
 
-        // VÁ LỖI 2: Hàm dịch ngày cho Gantt Chart (Bắt buộc YYYY-MM-DD)
-        const formatGanttDate = (isoString) => {
-            if (!isoString || isoString === "N/A" || isoString.trim() === "") return null;
-            try {
-                const d = new Date(isoString);
-                if (isNaN(d.getTime())) return null;
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            } catch(e) { return null; }
+        // Định dạng hiển thị ra UI (DD/MM/YYYY)
+        const formatDisplayDate = (raw) => {
+            const ymd = normalizeDateToYMD(raw);
+            if (!ymd) return "Chưa có hạn";
+            const parts = ymd.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
         };
 
         const cleanLabel = (txt) => txt ? txt.replace(/^\d+\.\s*/, '') : '';
@@ -126,7 +145,7 @@
                 document.getElementById('loader').classList.add('hidden');
                 switchTab('tree');
                 lucide.createIcons();
-            } catch (e) { alert("Lỗi kết nối API."); }
+            } catch (e) { alert("Lỗi kết nối hệ thống."); }
         }
 
         function switchTab(tab) {
@@ -150,11 +169,9 @@
                 return nodes.map(node => {
                     const childrenHTML = buildHTML(node['ID']);
                     const hasChildren = childrenHTML !== "";
-                    const borderCls = node['Cấp độ'].includes('Năm') ? 'border-purple-500' : (node['Cấp độ'].includes('Quý') ? 'border-indigo-500' : 'border-slate-300');
-                    const badgeCls = node['Cấp độ'].includes('Năm') ? 'bg-purple-100 text-purple-700' : (node['Cấp độ'].includes('Quý') ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500');
-
-                    // ÁP DỤNG HÀM VÁ LỖI NGÀY Ở ĐÂY
-                    const displayDate = formatDisplayDate(node['Hạn hoàn thành']);
+                    const capDo = node['Cấp độ'] || '';
+                    const borderCls = capDo.includes('Năm') ? 'border-purple-500' : (capDo.includes('Quý') ? 'border-indigo-500' : 'border-slate-300');
+                    const badgeCls = capDo.includes('Năm') ? 'bg-purple-100 text-purple-700' : (capDo.includes('Quý') ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500');
 
                     return `
                     <div class="tree-item group">
@@ -162,10 +179,10 @@
                              onclick="toggleNode(this.parentElement)">
                             <div class="flex-1">
                                 <div class="flex items-center gap-3 mb-2">
-                                    <span class="text-[10px] font-black uppercase tracking-tighter px-2 py-1 rounded-lg ${badgeCls}">${cleanLabel(node['Cấp độ'])}</span>
-                                    <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">HẠN: ${displayDate}</span>
+                                    <span class="text-[10px] font-black uppercase tracking-tighter px-2 py-1 rounded-lg ${badgeCls}">${cleanLabel(capDo)}</span>
+                                    <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded shadow-sm">HẠN: ${formatDisplayDate(node['Hạn hoàn thành'])}</span>
                                 </div>
-                                <h3 class="text-xl font-bold text-slate-800">${node['Mục tiêu']}</h3>
+                                <h3 class="text-xl font-bold text-slate-800">${node['Mục tiêu'] || 'Chưa có tên'}</h3>
                             </div>
                             ${hasChildren ? `<i data-lucide="chevron-right" class="rotate-icon text-slate-300"></i>` : ''}
                         </div>
@@ -183,7 +200,10 @@
             const map = { 'todo': '1. Tạo mới KH', 'doing': 'Đang thực hiện', 'done': 'Hoàn thành' };
             Object.keys(map).forEach(key => {
                 const el = document.getElementById(`col-${key}`);
-                const tasks = rawData.filter(d => (d['Cấp độ'].includes('Ngày') || d['Cấp độ'].includes('Tuần')) && (d['Trạng thái'] || '1. Tạo mới KH') === map[key]);
+                const tasks = rawData.filter(d => {
+                    const c = d['Cấp độ'] || '';
+                    return (c.includes('Ngày') || c.includes('Tuần')) && (d['Trạng thái'] || '1. Tạo mới KH') === map[key];
+                });
                 document.getElementById(`cnt-${key}`).innerText = tasks.length;
                 el.innerHTML = tasks.map(t => `
                     <div data-id="${t['ID']}" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 cursor-move hover:shadow-lg transition-all ring-offset-2 hover:ring-2 ring-indigo-400">
@@ -191,7 +211,7 @@
                         <h4 class="font-bold text-slate-800 leading-snug mt-1">${t['Mục tiêu']}</h4>
                         <div class="flex justify-between items-center mt-4 text-[10px] font-bold text-slate-400">
                             <span class="bg-slate-50 px-2 py-1 rounded">${t['Người thực hiện'] || 'CEO'}</span>
-                            <span class="text-indigo-600 bg-indigo-50 px-2 py-1 rounded">${formatDisplayDate(t['Hạn hoàn thành'])}</span>
+                            <span class="text-indigo-600 bg-indigo-50 px-2 py-1 rounded">${formatDisplayDate(t['Hạn hoàn thành']).substring(0,5)}</span>
                         </div>
                     </div>
                 `).join('');
@@ -202,58 +222,70 @@
                     const status = map[e.to.id.replace('col-', '')];
                     showToast("Đang lưu...");
                     await fetch(CONFIG.API, { method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify({token: CONFIG.TOKEN, id: id, status: status}) });
-                    showToast("Hệ thống đã ghi nhận!");
+                    showToast("Đã ghi nhận thay đổi!");
                 }});
             });
         }
 
+        // ==========================================
+        // VÁ LỖI GANTT CHART ĐỘT PHÁ
+        // ==========================================
         function renderGantt() {
-            // VÁ LỖI GANTT CHART: Lọc cực kỳ nghiêm ngặt
-            const tasks = rawData
-                .map(d => {
-                    const startDate = formatGanttDate(d['Ngày bắt đầu']);
-                    const endDate = formatGanttDate(d['Hạn hoàn thành']);
-                    return {
-                        id: d['ID'],
-                        name: cleanLabel(d['Cấp độ']) + ": " + d['Mục tiêu'],
-                        start: startDate,
-                        end: endDate,
-                        progress: (d['Trạng thái'] === 'Hoàn thành' || d['Trạng thái'] === '3. Hoàn thành') ? 100 : 20,
-                        custom_class: d['Cấp độ'].includes('Quý') ? 'bar-important' : '',
-                        capDo: d['Cấp độ']
-                    };
-                })
-                // Loại bỏ những công việc không có ngày hoặc không thuộc Năm/Quý/Tháng/Tuần
-                .filter(t => t.start && t.end && (t.capDo.includes('Năm') || t.capDo.includes('Quý') || t.capDo.includes('Tháng') || t.capDo.includes('Tuần')));
-
             const container = document.getElementById("gantt-chart");
-            
-            if(tasks.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-400 font-bold">Chưa có dữ liệu dự án (Yêu cầu phải có đầy đủ Ngày bắt đầu & Hạn hoàn thành)</div>`;
+            const validTasks = [];
+
+            rawData.forEach(d => {
+                const capDo = d['Cấp độ'] || '';
+                // Chỉ lấy cấp chiến lược (Loại bỏ task Ngày để tránh rác biểu đồ)
+                if (!capDo.includes('Năm') && !capDo.includes('Quý') && !capDo.includes('Tháng') && !capDo.includes('Tuần')) return;
+
+                let startYMD = normalizeDateToYMD(d['Ngày bắt đầu']);
+                let endYMD = normalizeDateToYMD(d['Hạn hoàn thành']);
+
+                // Chống gãy biểu đồ nếu thiếu ngày: Mượn ngày còn lại để vẽ điểm mốc
+                if (!startYMD && endYMD) startYMD = endYMD;
+                if (startYMD && !endYMD) endYMD = startYMD;
+
+                if (startYMD && endYMD) {
+                    // Chống sập nếu Start lớn hơn End
+                    if (new Date(startYMD) > new Date(endYMD)) {
+                        let temp = startYMD; startYMD = endYMD; endYMD = temp;
+                    }
+
+                    validTasks.push({
+                        id: String(d['ID']),
+                        name: cleanLabel(capDo) + ": " + (d['Mục tiêu'] || 'No name'),
+                        start: startYMD,
+                        end: endYMD,
+                        progress: (d['Trạng thái'] === 'Hoàn thành' || d['Trạng thái'] === '3. Hoàn thành') ? 100 : 20,
+                        custom_class: capDo.includes('Quý') ? 'bar-important' : ''
+                    });
+                }
+            });
+
+            if(validTasks.length === 0) {
+                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-bold border-2 border-dashed border-slate-200 rounded-xl">Chưa có đủ dữ liệu Thời gian để vẽ biểu đồ Gantt.</div>`;
                 return;
             }
 
-            container.innerHTML = ""; // Xóa dữ liệu cũ trước khi vẽ lại
+            container.innerHTML = ""; 
             
             try {
-                ganttInstance = new Gantt("#gantt-chart", tasks, {
+                ganttInstance = new Gantt("#gantt-chart", validTasks, {
                     language: 'vi',
                     header_height: 50,
                     column_width: 30,
                     view_mode: 'Month',
                     bar_height: 30,
-                    padding: 18,
-                    on_click: (t) => console.log(t)
+                    padding: 18
                 });
             } catch(e) {
-                console.error("Gantt Chart Error:", e);
-                container.innerHTML = `<div class="p-10 text-center text-red-400 font-bold">Lỗi vẽ biểu đồ: Định dạng ngày tháng không hợp lệ.</div>`;
+                console.error(e);
+                container.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Vẫn còn một dòng dữ liệu ngày bị lỗi đặc biệt. Vui lòng báo cho kỹ thuật.</div>`;
             }
         }
 
-        function changeGanttView(mode) { 
-            if(ganttInstance) ganttInstance.change_view_mode(mode); 
-        }
+        function changeGanttView(mode) { if(ganttInstance) ganttInstance.change_view_mode(mode); }
 
         function showToast(m) {
             const t = document.getElementById("toast"); t.innerText = m; t.className = "show";
