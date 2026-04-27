@@ -3,165 +3,378 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lalia Strategy OS</title>
+    <title>Lalia Strategy OS - Bảng Điều Hành 30X</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
-        .tab-active { color: #4f46e5; border-bottom: 3px solid #4f46e5; }
-        .kanban-column { min-height: 500px; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f1f5f9; 
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        /* Hiệu ứng Kính mờ (Glassmorphism) */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255,255,255,0.4); 
+        }
+        .tab-active { 
+            color: #4f46e5; 
+            background-color: #e0e7ff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .kanban-column { min-height: 60vh; }
+        .tree-line {
+            border-left: 2px dashed #cbd5e1;
+            margin-left: 1.5rem;
+            padding-left: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        /* Hiệu ứng Toast thông báo */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px 24px;
+            position: fixed;
+            z-index: 50;
+            right: 30px;
+            bottom: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-8 text-slate-800">
+
     <div class="max-w-7xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
             <div>
-                <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Lalia <span class="text-indigo-600">Strategy OS</span></h1>
-                <p class="text-slate-500 font-medium">Hệ điều hành mục tiêu CEO Nguyễn Quang Huy</p>
+                <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">Lalia <span class="text-indigo-600">Strategy OS</span></h1>
+                <p class="text-slate-500 font-medium flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-5 h-5 text-emerald-500"></i>
+                    Bảng điều khiển chiến lược 30X - CEO Nguyễn Quang Huy
+                </p>
             </div>
-            <div class="glass p-2 rounded-2xl flex gap-2 shadow-xl">
-                <button onclick="switchTab('tree')" id="btn-tree" class="px-6 py-2 rounded-xl font-bold transition-all tab-active flex items-center gap-2"><i data-lucide="layers"></i> Chiến lược</button>
-                <button onclick="switchTab('kanban')" id="btn-kanban" class="px-6 py-2 rounded-xl font-bold transition-all text-slate-500 flex items-center gap-2"><i data-lucide="trello"></i> Kanban</button>
-                <button onclick="switchTab('gantt')" id="btn-gantt" class="px-6 py-2 rounded-xl font-bold transition-all text-slate-500 flex items-center gap-2"><i data-lucide="calendar-range"></i> Tiến độ</button>
+            
+            <div class="glass-panel p-2 rounded-2xl flex flex-wrap gap-2 shadow-sm">
+                <button onclick="switchTab('tree')" id="btn-tree" class="px-5 py-2.5 rounded-xl font-bold transition-all tab-active flex items-center gap-2 text-sm">
+                    <i data-lucide="folder-tree" class="w-4 h-4"></i> Chiến lược
+                </button>
+                <button onclick="switchTab('kanban')" id="btn-kanban" class="px-5 py-2.5 rounded-xl font-bold transition-all text-slate-500 hover:bg-white hover:shadow-sm flex items-center gap-2 text-sm">
+                    <i data-lucide="kanban-square" class="w-4 h-4"></i> Kanban
+                </button>
+                <button onclick="switchTab('gantt')" id="btn-gantt" class="px-5 py-2.5 rounded-xl font-bold transition-all text-slate-500 hover:bg-white hover:shadow-sm flex items-center gap-2 text-sm">
+                    <i data-lucide="gantt-chart-square" class="w-4 h-4"></i> Tiến độ
+                </button>
             </div>
         </div>
 
-        <div id="loader" class="flex justify-center py-20"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-indigo-600"></div></div>
+        <div id="loader" class="flex flex-col items-center justify-center py-32 space-y-4">
+            <div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-indigo-600"></div>
+            <p class="text-slate-400 font-semibold animate-pulse">Đang đồng bộ dữ liệu Real-time từ AppSheet...</p>
+        </div>
 
-        <div id="view-tree" class="hidden space-y-4"></div>
+        <div id="error-msg" class="hidden glass-panel border-red-200 p-8 rounded-3xl text-center shadow-xl">
+            <i data-lucide="alert-triangle" class="w-16 h-16 text-red-500 mx-auto mb-4"></i>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Không thể tải dữ liệu</h2>
+            <p id="error-text" class="text-slate-500"></p>
+        </div>
+
+        <div id="view-tree" class="hidden space-y-6"></div>
 
         <div id="view-kanban" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="flex flex-col gap-4">
-                <h2 class="font-bold text-slate-700 flex items-center gap-2 px-2"><span class="w-3 h-3 bg-slate-400 rounded-full"></span> CHỜ TRIỂN KHAI</h2>
-                <div id="col-todo" class="kanban-column space-y-4 p-2 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200"></div>
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between px-2">
+                    <h2 class="font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wide text-sm">
+                        <span class="w-3 h-3 bg-slate-400 rounded-full shadow-inner"></span> Chờ triển khai
+                    </h2>
+                    <span id="count-todo" class="bg-slate-200 text-slate-600 text-xs py-1 px-2 rounded-lg font-bold">0</span>
+                </div>
+                <div id="col-todo" class="kanban-column p-3 bg-slate-200/50 rounded-2xl border-2 border-dashed border-slate-300 shadow-inner"></div>
             </div>
-            <div class="flex flex-col gap-4">
-                <h2 class="font-bold text-indigo-600 flex items-center gap-2 px-2"><span class="w-3 h-3 bg-indigo-500 rounded-full"></span> ĐANG THỰC HIỆN</h2>
-                <div id="col-doing" class="kanban-column space-y-4 p-2 bg-indigo-50 rounded-2xl border-2 border-dashed border-indigo-100"></div>
+
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between px-2">
+                    <h2 class="font-bold text-indigo-700 flex items-center gap-2 uppercase tracking-wide text-sm">
+                        <span class="w-3 h-3 bg-indigo-500 rounded-full shadow-inner animate-pulse"></span> Đang thực hiện
+                    </h2>
+                    <span id="count-doing" class="bg-indigo-100 text-indigo-700 text-xs py-1 px-2 rounded-lg font-bold">0</span>
+                </div>
+                <div id="col-doing" class="kanban-column p-3 bg-indigo-50/50 rounded-2xl border-2 border-dashed border-indigo-200 shadow-inner"></div>
             </div>
-            <div class="flex flex-col gap-4">
-                <h2 class="font-bold text-emerald-600 flex items-center gap-2 px-2"><span class="w-3 h-3 bg-emerald-500 rounded-full"></span> ĐÃ HOÀN THÀNH</h2>
-                <div id="col-done" class="kanban-column space-y-4 p-2 bg-emerald-50 rounded-2xl border-2 border-dashed border-emerald-100"></div>
+
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between px-2">
+                    <h2 class="font-bold text-emerald-700 flex items-center gap-2 uppercase tracking-wide text-sm">
+                        <span class="w-3 h-3 bg-emerald-500 rounded-full shadow-inner"></span> Đã hoàn thành
+                    </h2>
+                    <span id="count-done" class="bg-emerald-100 text-emerald-700 text-xs py-1 px-2 rounded-lg font-bold">0</span>
+                </div>
+                <div id="col-done" class="kanban-column p-3 bg-emerald-50/50 rounded-2xl border-2 border-dashed border-emerald-200 shadow-inner"></div>
             </div>
         </div>
 
-        <div id="view-gantt" class="hidden glass p-8 rounded-3xl shadow-2xl text-center">
-            <i data-lucide="construction" class="mx-auto w-16 h-16 text-indigo-300 mb-4"></i>
-            <h2 class="text-2xl font-bold text-slate-800">Gantt Chart Pro</h2>
-            <p class="text-slate-500">Tính năng đang được tối ưu hoá cho dữ liệu 90 ngày của anh Huy.</p>
+        <div id="view-gantt" class="hidden glass-panel p-16 rounded-3xl shadow-xl text-center">
+            <div class="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="hard-hat" class="w-12 h-12 text-indigo-500"></i>
+            </div>
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-3">Gantt Chart Pro</h2>
+            <p class="text-slate-500 max-w-md mx-auto">Module quản trị tiến độ trực quan đang được đồng bộ hoá với lịch công tác 90 ngày của Lalia. Sắp ra mắt ở bản cập nhật tiếp theo.</p>
         </div>
     </div>
 
+    <div id="toast" class="flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toast-message">Cập nhật thành công!</span>
+    </div>
+
     <script>
+        // =====================================================================
+        // CẤU HÌNH API (THAY THẾ BẰNG LINK WEB APP MỚI NHẤT CỦA ANH)
+        // =====================================================================
         const CONFIG = {
-            API: "https://script.google.com/macros/s/AKfycbx38VJKnocxrkXNZOHylgUhfGoGn2vvT2-NhKyBLeu2X6cxYeGzttjEEa94_3JMNIru/exec",
+            API: "https://script.google.com/macros/s/AKfycbx38VJKnocxrkXNZOHylgUhfGoGn2vvT2-NhKyBLeu2X6cxYeGzttjEEa94_3JMNIru/exec", 
             TOKEN: "CEO_HUY_LALIA_2026"
         };
 
         let rawData = [];
 
-        // Hàm cắt số (Clean Label)
-        const cleanLabel = (text) => text.replace(/^\d+\.\s*/, '');
+        // HÀM TIỆN ÍCH
+        // Cắt bỏ số đằng trước (VD: "1. Năm" -> "Năm")
+        const cleanLabel = (text) => text ? text.replace(/^\d+\.\s*/, '') : '';
+        
+        // Định dạng ngày DD/MM/YYYY
+        const formatDate = (isoString) => {
+            if (!isoString || isoString === "N/A") return "Chưa có deadline";
+            const d = new Date(isoString);
+            return isNaN(d) ? isoString : d.toLocaleDateString('vi-VN');
+        };
 
+        // KÍCH HOẠT HỆ THỐNG
         async function init() {
-            const res = await fetch(`${CONFIG.API}?token=${CONFIG.TOKEN}`);
-            const json = await res.json();
-            rawData = json.data;
+            try {
+                const res = await fetch(`${CONFIG.API}?token=${CONFIG.TOKEN}`);
+                const json = await res.json();
+                
+                if (json.status === "success") {
+                    rawData = json.data;
+                    document.getElementById('loader').classList.add('hidden');
+                    switchTab('tree'); // Mặc định mở tab Chiến lược
+                    lucide.createIcons();
+                } else {
+                    showError(json.message);
+                }
+            } catch (error) {
+                showError("Lỗi kết nối. Vui lòng kiểm tra lại Link API và quyền truy cập 'Anyone'.");
+                console.error(error);
+            }
+        }
+
+        function showError(msg) {
             document.getElementById('loader').classList.add('hidden');
-            switchTab('tree');
+            document.getElementById('error-msg').classList.remove('hidden');
+            document.getElementById('error-text').innerText = msg;
             lucide.createIcons();
         }
 
+        // CHUYỂN ĐỔI TAB UI
         function switchTab(tab) {
             ['tree', 'kanban', 'gantt'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
-                document.getElementById(`btn-${t}`).classList.remove('tab-active', 'text-indigo-600');
-                document.getElementById(`btn-${t}`).classList.add('text-slate-500');
+                const btn = document.getElementById(`btn-${t}`);
+                btn.classList.remove('tab-active', 'text-indigo-600', 'bg-indigo-50');
+                btn.classList.add('text-slate-500');
             });
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-${tab}`).classList.add('tab-active', 'text-indigo-600');
             
-            if(tab === 'tree') renderTree();
-            if(tab === 'kanban') renderKanban();
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-${tab}`);
+            activeBtn.classList.remove('text-slate-500');
+            activeBtn.classList.add('tab-active');
+            
+            if (tab === 'tree') renderTree();
+            if (tab === 'kanban') renderKanban();
         }
 
-        // --- RENDER TREE VIEW ---
+        // =====================================================================
+        // LOGIC: RENDER TREE VIEW (Giao diện Chiến lược)
+        // =====================================================================
         function renderTree() {
             const container = document.getElementById('view-tree');
-            const buildTree = (parentId = "") => {
-                const nodes = rawData.filter(d => d["ID cha"] == parentId);
-                return nodes.map(node => `
-                    <div class="mb-4">
-                        <div class="glass p-5 rounded-3xl shadow-xl hover:shadow-2xl transition-all border-l-8 ${getBorderColor(node['Cấp độ'])}">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <span class="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-lg bg-white/50 mb-2 inline-block">${cleanLabel(node['Cấp độ'])}</span>
-                                    <h3 class="text-xl font-bold text-slate-800">${node['Mục tiêu']}</h3>
-                                    <p class="text-sm text-slate-500 mt-1">${node['Mô tả chi tiết mong muốn'] || ''}</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-xs font-bold text-slate-400 block mb-1">DEADLINE</span>
-                                    <span class="text-sm font-bold text-slate-700">${new Date(node['Hạn hoàn thành']).toLocaleDateString('vi-VN')}</span>
+            
+            // Hàm đệ quy tạo HTML
+            const buildTreeHTML = (parentId = "") => {
+                // Tìm các node có ID cha tương ứng (Nút gốc có ID cha rỗng)
+                const nodes = rawData.filter(d => (d["ID cha"] || "") === parentId);
+                if (nodes.length === 0) return "";
+
+                return nodes.map(node => {
+                    const capDo = node['Cấp độ'] || '';
+                    const isYear = capDo.includes('Năm');
+                    
+                    // Style theo cấp độ
+                    let borderCol = 'border-slate-300';
+                    let badgeCol = 'bg-slate-100 text-slate-600';
+                    
+                    if (isYear) { borderCol = 'border-purple-500'; badgeCol = 'bg-purple-100 text-purple-700'; }
+                    else if (capDo.includes('Quý')) { borderCol = 'border-indigo-500'; badgeCol = 'bg-indigo-100 text-indigo-700'; }
+                    else if (capDo.includes('Tháng')) { borderCol = 'border-sky-400'; badgeCol = 'bg-sky-100 text-sky-700'; }
+
+                    const childrenHTML = buildTreeHTML(node['ID']);
+                    const hasChildren = childrenHTML !== "";
+
+                    return `
+                        <div class="mb-4">
+                            <div class="glass-panel p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow border-l-4 ${borderCol}">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md ${badgeCol}">
+                                                ${cleanLabel(capDo)}
+                                            </span>
+                                            <span class="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                                                <i data-lucide="clock" class="w-3 h-3"></i> ${formatDate(node['Hạn hoàn thành'])}
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-slate-800">${node['Mục tiêu']}</h3>
+                                        ${node['Mô tả chi tiết mong muốn'] ? `<p class="text-sm text-slate-500 mt-2 line-clamp-2">${node['Mô tả chi tiết mong muốn']}</p>` : ''}
+                                    </div>
+                                    
+                                    <div class="md:text-right bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <span class="text-xs font-bold text-slate-400 block mb-1">NGƯỜI PHỤ TRÁCH</span>
+                                        <div class="flex items-center gap-2 justify-end">
+                                            <div class="w-6 h-6 rounded-full bg-indigo-200 flex items-center justify-center text-[10px] font-bold text-indigo-700">
+                                                ${(node['Người thực hiện'] || 'CEO').charAt(0)}
+                                            </div>
+                                            <span class="text-sm font-bold text-slate-700">${node['Người thực hiện'] || 'Ban Giám Đốc'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                            ${hasChildren ? `<div class="tree-line">${childrenHTML}</div>` : ''}
                         </div>
-                        <div class="ml-8 mt-4 border-l-2 border-slate-200 pl-6">${buildTree(node['ID'])}</div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             };
-            container.innerHTML = buildTree();
+
+            container.innerHTML = buildTreeHTML("");
+            lucide.createIcons();
         }
 
-        // --- RENDER KANBAN VIEW ---
+        // =====================================================================
+        // LOGIC: RENDER KANBAN VIEW & KÉO THẢ
+        // =====================================================================
         function renderKanban() {
-            const cols = { 'todo': '1. Tạo mới KH', 'doing': 'Đang thực hiện', 'done': 'Hoàn thành' };
-            Object.keys(cols).forEach(key => {
+            // Định nghĩa chính xác chuỗi trạng thái giống Google Sheets của anh
+            const colsMapping = { 
+                'todo': '1. Tạo mới KH', 
+                'doing': 'Đang thực hiện', 
+                'done': 'Hoàn thành' 
+            };
+
+            // Chỉ lọc các tác vụ là Tuần hoặc Ngày
+            const tasks = rawData.filter(d => {
+                const c = d['Cấp độ'] || '';
+                return c.includes('Ngày') || c.includes('Tuần');
+            });
+
+            Object.keys(colsMapping).forEach(key => {
                 const el = document.getElementById(`col-${key}`);
-                const tasks = rawData.filter(d => d['Cấp độ'].includes('Ngày') || d['Cấp độ'].includes('Tuần'));
-                const filtered = tasks.filter(t => t['Trạng thái'] === cols[key]);
+                const statusStr = colsMapping[key];
                 
-                el.innerHTML = filtered.map(t => `
-                    <div data-id="${t['ID']}" class="bg-white p-4 rounded-2xl shadow-md border border-slate-100 cursor-move hover:ring-2 ring-indigo-400 transition-all">
-                        <p class="text-xs font-bold text-indigo-500 mb-1">${cleanLabel(t['Cấp độ'])}</p>
-                        <h4 class="font-bold text-slate-800">${t['Mục tiêu']}</h4>
-                        <div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-50">
-                            <span class="text-[10px] text-slate-400">${t['Người thực hiện'] || 'CEO'}</span>
-                            <span class="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded-md">${new Date(t['Hạn hoàn thành']).toLocaleDateString('vi-VN')}</span>
+                const filteredTasks = tasks.filter(t => (t['Trạng thái'] || '1. Tạo mới KH') === statusStr);
+                document.getElementById(`count-${key}`).innerText = filteredTasks.length;
+                
+                el.innerHTML = filteredTasks.map(t => {
+                    const isUrgent = (t['Mức độ ưu tiên'] || '').includes('Gấp');
+                    const priorityColor = isUrgent ? 'text-red-500 bg-red-50 border-red-100' : 'text-slate-500 bg-slate-50 border-slate-100';
+
+                    return `
+                    <div data-id="${t['ID']}" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-move hover:shadow-md hover:border-indigo-300 transition-all group">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-[10px] font-bold uppercase text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">${cleanLabel(t['Cấp độ'])}</p>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded border ${priorityColor}">${t['Mức độ ưu tiên'] || 'Bình thường'}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">${t['Mục tiêu']}</h4>
+                        <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-100">
+                            <span class="text-xs font-medium text-slate-500 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${t['Người thực hiện'] || 'CEO'}</span>
+                            <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-md flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${formatDate(t['Hạn hoàn thành']).substring(0,5)}</span>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
 
+                // Khởi tạo kéo thả
                 new Sortable(el, {
                     group: 'kanban',
                     animation: 150,
+                    ghostClass: 'opacity-50',
                     onEnd: async (evt) => {
+                        if (evt.from === evt.to) return; // Không làm gì nếu thả cùng 1 cột
+                        
                         const id = evt.item.getAttribute('data-id');
-                        const newStatus = cols[evt.to.id.replace('col-', '')];
-                        await updateStatus(id, newStatus);
+                        const newStatus = colsMapping[evt.to.id.replace('col-', '')];
+                        
+                        // Cập nhật giao diện số lượng lập tức
+                        renderKanban(); 
+                        
+                        // Gọi API cập nhật ngầm
+                        await updateStatusInGoogleSheets(id, newStatus);
                     }
                 });
             });
+            lucide.createIcons();
         }
 
-        async function updateStatus(id, status) {
-            // Hiệu ứng Toast đơn giản
-            console.log(`Updating ${id} to ${status}...`);
-            await fetch(CONFIG.API, {
-                method: 'POST',
-                body: JSON.stringify({ token: CONFIG.TOKEN, id: id, status: status })
-            });
+        // =====================================================================
+        // LOGIC: GỬI LỆNH UPDATE VỀ GOOGLE SHEETS (VƯỢT LỖI CORS)
+        // =====================================================================
+        async function updateStatusInGoogleSheets(id, newStatus) {
+            try {
+                const response = await fetch(CONFIG.API, {
+                    method: 'POST',
+                    // BẮT BUỘC dùng text/plain để tránh lỗi CORS Preflight chặn bởi Google
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ token: CONFIG.TOKEN, id: id, status: newStatus })
+                });
+                
+                const result = await response.json();
+                if(result.status === "success") {
+                    showToast("Đã lưu tiến độ về hệ thống!");
+                    // Cập nhật lại rawData trong bộ nhớ tạm
+                    const taskIndex = rawData.findIndex(t => t['ID'] == id);
+                    if(taskIndex > -1) rawData[taskIndex]['Trạng thái'] = newStatus;
+                } else {
+                    alert("Lỗi cập nhật: " + result.message);
+                }
+            } catch (error) {
+                console.error("Lỗi khi kết nối Google Sheets:", error);
+                alert("Lỗi đường truyền! Vui lòng thử lại.");
+            }
         }
 
-        function getBorderColor(cap) {
-            if (cap.includes('Năm')) return 'border-purple-500';
-            if (cap.includes('Quý')) return 'border-indigo-500';
-            if (cap.includes('Tháng')) return 'border-sky-500';
-            return 'border-slate-300';
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toast-message").innerText = message;
+            toast.className = "flex items-center gap-3 show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
         }
 
+        // Bắt đầu chạy hệ thống
         init();
     </script>
 </body>
