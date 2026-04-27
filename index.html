@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lalia Strategy OS - v3.2 Final</title>
+    <title>Lalia Strategy OS - v3.3 Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -18,23 +18,14 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; }
         .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.4); }
         .tab-active { color: #4f46e5; border-bottom: 3px solid #4f46e5; background: #eff6ff; }
-        
-        /* Hiệu ứng trượt mở rộng của Tree View */
         .child-container { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; }
         .expanded > .child-container { max-height: 5000px; transition: max-height 0.7s ease-in; }
         .rotate-icon { transition: transform 0.3s; }
         .expanded > .parent-card .rotate-icon { transform: rotate(90deg); }
-
-        /* Custom Gantt Style */
         .gantt-container { overflow-x: auto; background: white; border-radius: 1rem; padding: 1rem; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.05); }
         .gantt .bar-label { fill: #475569; font-weight: 600; font-size: 11px; }
         .gantt .bar { fill: #818cf8; }
-        
-        #toast {
-            visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center;
-            border-radius: 12px; padding: 16px; position: fixed; z-index: 100; right: 30px; bottom: 30px;
-            opacity: 0; transition: 0.5s;
-        }
+        #toast { visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center; border-radius: 12px; padding: 16px; position: fixed; z-index: 100; right: 30px; bottom: 30px; opacity: 0; transition: 0.5s; }
         #toast.show { visibility: visible; opacity: 1; bottom: 40px; }
     </style>
 </head>
@@ -49,7 +40,7 @@
             
             <nav class="glass p-2 rounded-2xl flex gap-1 shadow-xl">
                 <button onclick="switchTab('tree')" id="btn-tree" class="px-6 py-2.5 rounded-xl font-bold transition-all tab-active flex items-center gap-2"><i data-lucide="layout-list" class="w-4 h-4"></i> Chiến lược</button>
-                <button onclick="switchTab('kanban')" id="btn-kanban" class="px-6 py-2.5 rounded-xl font-bold transition-all text-slate-500 flex items-center gap-2"><i data-lucide="trello" class="w-4 h-4"></i> Kanban</button>
+                <button onclick="switchTab('kanban')" id="btn-kanban" class="px-6 py-2.5 rounded-xl font-bold transition-all text-slate-500 flex items-center gap-2"><i data-lucide="kanban" class="w-4 h-4"></i> Kanban</button>
                 <button onclick="switchTab('gantt')" id="btn-gantt" class="px-6 py-2.5 rounded-xl font-bold transition-all text-slate-500 flex items-center gap-2"><i data-lucide="calendar-range" class="w-4 h-4"></i> Tiến độ</button>
             </nav>
         </div>
@@ -64,15 +55,15 @@
         <div id="view-kanban" class="hidden grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="flex flex-col gap-4">
                 <div class="flex justify-between px-2 font-bold text-xs text-slate-400 uppercase tracking-widest"><span>Chờ làm</span><span id="cnt-todo">0</span></div>
-                <div id="col-todo" class="kanban-column p-4 bg-slate-200/50 rounded-3xl border-2 border-dashed border-slate-300 space-y-4"></div>
+                <div id="col-todo" class="kanban-column min-h-[500px] p-4 bg-slate-200/50 rounded-3xl border-2 border-dashed border-slate-300 space-y-4"></div>
             </div>
             <div class="flex flex-col gap-4">
                 <div class="flex justify-between px-2 font-bold text-xs text-indigo-400 uppercase tracking-widest"><span>Đang làm</span><span id="cnt-doing">0</span></div>
-                <div id="col-doing" class="kanban-column p-4 bg-indigo-50 rounded-3xl border-2 border-dashed border-indigo-200 space-y-4 shadow-inner"></div>
+                <div id="col-doing" class="kanban-column min-h-[500px] p-4 bg-indigo-50 rounded-3xl border-2 border-dashed border-indigo-200 space-y-4 shadow-inner"></div>
             </div>
             <div class="flex flex-col gap-4">
                 <div class="flex justify-between px-2 font-bold text-xs text-emerald-400 uppercase tracking-widest"><span>Hoàn thành</span><span id="cnt-done">0</span></div>
-                <div id="col-done" class="kanban-column p-4 bg-emerald-50 rounded-3xl border-2 border-dashed border-emerald-200 space-y-4 shadow-inner"></div>
+                <div id="col-done" class="kanban-column min-h-[500px] p-4 bg-emerald-50 rounded-3xl border-2 border-dashed border-emerald-200 space-y-4 shadow-inner"></div>
             </div>
         </div>
 
@@ -102,12 +93,27 @@
         let rawData = [];
         let ganttInstance = null;
 
-        // Xử lý ngày tháng DD/MM/YYYY sang YYYY-MM-DD cho Gantt
-        const parseDate = (str) => {
-            if(!str || str === "N/A") return null;
-            const parts = str.split('/');
-            if(parts.length < 3) return null;
-            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        // VÁ LỖI 1: Hàm dịch ngày hiển thị (DD/MM/YYYY)
+        const formatDisplayDate = (isoString) => {
+            if (!isoString || isoString === "N/A" || isoString.trim() === "") return "Chưa có hạn";
+            try {
+                const d = new Date(isoString);
+                if (isNaN(d.getTime())) return isoString;
+                return d.toLocaleDateString('vi-VN');
+            } catch(e) { return isoString; }
+        };
+
+        // VÁ LỖI 2: Hàm dịch ngày cho Gantt Chart (Bắt buộc YYYY-MM-DD)
+        const formatGanttDate = (isoString) => {
+            if (!isoString || isoString === "N/A" || isoString.trim() === "") return null;
+            try {
+                const d = new Date(isoString);
+                if (isNaN(d.getTime())) return null;
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch(e) { return null; }
         };
 
         const cleanLabel = (txt) => txt ? txt.replace(/^\d+\.\s*/, '') : '';
@@ -120,7 +126,7 @@
                 document.getElementById('loader').classList.add('hidden');
                 switchTab('tree');
                 lucide.createIcons();
-            } catch (e) { alert("Lỗi kết nối API. Hãy kiểm tra ID Sheets và link WebApp."); }
+            } catch (e) { alert("Lỗi kết nối API."); }
         }
 
         function switchTab(tab) {
@@ -136,7 +142,6 @@
             if(tab === 'gantt') renderGantt();
         }
 
-        // --- TREE VIEW (CLICK TO EXPAND) ---
         function renderTree() {
             const container = document.getElementById('view-tree');
             const buildHTML = (parentId = "") => {
@@ -148,14 +153,17 @@
                     const borderCls = node['Cấp độ'].includes('Năm') ? 'border-purple-500' : (node['Cấp độ'].includes('Quý') ? 'border-indigo-500' : 'border-slate-300');
                     const badgeCls = node['Cấp độ'].includes('Năm') ? 'bg-purple-100 text-purple-700' : (node['Cấp độ'].includes('Quý') ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500');
 
+                    // ÁP DỤNG HÀM VÁ LỖI NGÀY Ở ĐÂY
+                    const displayDate = formatDisplayDate(node['Hạn hoàn thành']);
+
                     return `
-                    <div class="tree-item group ${hasChildren ? '' : ''}">
+                    <div class="tree-item group">
                         <div class="parent-card glass p-6 rounded-3xl shadow-sm hover:shadow-xl transition-all cursor-pointer border-l-8 ${borderCls} flex justify-between items-center" 
                              onclick="toggleNode(this.parentElement)">
                             <div class="flex-1">
                                 <div class="flex items-center gap-3 mb-2">
                                     <span class="text-[10px] font-black uppercase tracking-tighter px-2 py-1 rounded-lg ${badgeCls}">${cleanLabel(node['Cấp độ'])}</span>
-                                    <span class="text-[10px] font-bold text-slate-400">HẠN: ${node['Hạn hoàn thành']}</span>
+                                    <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">HẠN: ${displayDate}</span>
                                 </div>
                                 <h3 class="text-xl font-bold text-slate-800">${node['Mục tiêu']}</h3>
                             </div>
@@ -171,7 +179,6 @@
 
         function toggleNode(el) { el.classList.toggle('expanded'); }
 
-        // --- KANBAN VIEW ---
         function renderKanban() {
             const map = { 'todo': '1. Tạo mới KH', 'doing': 'Đang thực hiện', 'done': 'Hoàn thành' };
             Object.keys(map).forEach(key => {
@@ -183,8 +190,8 @@
                         <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">${cleanLabel(t['Cấp độ'])}</span>
                         <h4 class="font-bold text-slate-800 leading-snug mt-1">${t['Mục tiêu']}</h4>
                         <div class="flex justify-between items-center mt-4 text-[10px] font-bold text-slate-400">
-                            <span class="bg-slate-50 px-2 py-1 rounded">${t['Người thực hiện']}</span>
-                            <span>${t['Hạn hoàn thành'].substring(0,5)}</span>
+                            <span class="bg-slate-50 px-2 py-1 rounded">${t['Người thực hiện'] || 'CEO'}</span>
+                            <span class="text-indigo-600 bg-indigo-50 px-2 py-1 rounded">${formatDisplayDate(t['Hạn hoàn thành'])}</span>
                         </div>
                     </div>
                 `).join('');
@@ -200,32 +207,53 @@
             });
         }
 
-        // --- GANTT VIEW ---
         function renderGantt() {
+            // VÁ LỖI GANTT CHART: Lọc cực kỳ nghiêm ngặt
             const tasks = rawData
-                .filter(d => d['Hạn hoàn thành'] !== "N/A" && (d['Cấp độ'].includes('Quý') || d['Cấp độ'].includes('Tháng') || d['Cấp độ'].includes('Tuần')))
-                .map(d => ({
-                    id: d['ID'],
-                    name: cleanLabel(d['Cấp độ']) + ": " + d['Mục tiêu'],
-                    start: parseDate(d['Ngày bắt đầu']) || '2026-01-01',
-                    end: parseDate(d['Hạn hoàn thành']),
-                    progress: d['Trạng thái'] === 'Hoàn thành' ? 100 : 20,
-                    custom_class: d['Cấp độ'].includes('Quý') ? 'bar-important' : ''
-                }));
+                .map(d => {
+                    const startDate = formatGanttDate(d['Ngày bắt đầu']);
+                    const endDate = formatGanttDate(d['Hạn hoàn thành']);
+                    return {
+                        id: d['ID'],
+                        name: cleanLabel(d['Cấp độ']) + ": " + d['Mục tiêu'],
+                        start: startDate,
+                        end: endDate,
+                        progress: (d['Trạng thái'] === 'Hoàn thành' || d['Trạng thái'] === '3. Hoàn thành') ? 100 : 20,
+                        custom_class: d['Cấp độ'].includes('Quý') ? 'bar-important' : '',
+                        capDo: d['Cấp độ']
+                    };
+                })
+                // Loại bỏ những công việc không có ngày hoặc không thuộc Năm/Quý/Tháng/Tuần
+                .filter(t => t.start && t.end && (t.capDo.includes('Năm') || t.capDo.includes('Quý') || t.capDo.includes('Tháng') || t.capDo.includes('Tuần')));
 
-            if(tasks.length === 0) return;
-            ganttInstance = new Gantt("#gantt-chart", tasks, {
-                language: 'vi',
-                header_height: 50,
-                column_width: 30,
-                view_mode: 'Month',
-                bar_height: 30,
-                padding: 18,
-                on_click: (t) => console.log(t)
-            });
+            const container = document.getElementById("gantt-chart");
+            
+            if(tasks.length === 0) {
+                container.innerHTML = `<div class="p-10 text-center text-slate-400 font-bold">Chưa có dữ liệu dự án (Yêu cầu phải có đầy đủ Ngày bắt đầu & Hạn hoàn thành)</div>`;
+                return;
+            }
+
+            container.innerHTML = ""; // Xóa dữ liệu cũ trước khi vẽ lại
+            
+            try {
+                ganttInstance = new Gantt("#gantt-chart", tasks, {
+                    language: 'vi',
+                    header_height: 50,
+                    column_width: 30,
+                    view_mode: 'Month',
+                    bar_height: 30,
+                    padding: 18,
+                    on_click: (t) => console.log(t)
+                });
+            } catch(e) {
+                console.error("Gantt Chart Error:", e);
+                container.innerHTML = `<div class="p-10 text-center text-red-400 font-bold">Lỗi vẽ biểu đồ: Định dạng ngày tháng không hợp lệ.</div>`;
+            }
         }
 
-        function changeGanttView(mode) { ganttInstance.change_view_mode(mode); }
+        function changeGanttView(mode) { 
+            if(ganttInstance) ganttInstance.change_view_mode(mode); 
+        }
 
         function showToast(m) {
             const t = document.getElementById("toast"); t.innerText = m; t.className = "show";
