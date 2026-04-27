@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lalia Strategy OS - v3.4 Ultimate</title>
+    <title>Lalia Strategy OS - v3.5 Fixed</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -96,14 +96,9 @@
         let rawData = [];
         let ganttInstance = null;
 
-        // ==========================================
-        // BỘ PHÂN TÍCH NGÀY BẤT TỬ (BULLETPROOF DATE PARSER)
-        // ==========================================
         function normalizeDateToYMD(raw) {
             if (!raw || raw === "N/A" || String(raw).trim() === "") return null;
             let str = String(raw).trim();
-            
-            // Xử lý chuỗi nhập tay DD/MM/YYYY (VD: 27/04/2026)
             if (str.includes('/')) {
                 const parts = str.split(' ')[0].split('/'); 
                 if (parts.length === 3) {
@@ -113,8 +108,6 @@
                     if (year.length === 4) return `${year}-${month}-${day}`;
                 }
             }
-            
-            // Xử lý chuỗi ISO do AppSheet trả về (VD: 2026-04-27T...)
             try {
                 const d = new Date(str);
                 if (!isNaN(d.getTime())) {
@@ -127,7 +120,6 @@
             return null;
         }
 
-        // Định dạng hiển thị ra UI (DD/MM/YYYY)
         const formatDisplayDate = (raw) => {
             const ymd = normalizeDateToYMD(raw);
             if (!ymd) return "Chưa có hạn";
@@ -227,27 +219,21 @@
             });
         }
 
-        // ==========================================
-        // VÁ LỖI GANTT CHART ĐỘT PHÁ
-        // ==========================================
         function renderGantt() {
             const container = document.getElementById("gantt-chart");
             const validTasks = [];
 
             rawData.forEach(d => {
                 const capDo = d['Cấp độ'] || '';
-                // Chỉ lấy cấp chiến lược (Loại bỏ task Ngày để tránh rác biểu đồ)
                 if (!capDo.includes('Năm') && !capDo.includes('Quý') && !capDo.includes('Tháng') && !capDo.includes('Tuần')) return;
 
                 let startYMD = normalizeDateToYMD(d['Ngày bắt đầu']);
                 let endYMD = normalizeDateToYMD(d['Hạn hoàn thành']);
 
-                // Chống gãy biểu đồ nếu thiếu ngày: Mượn ngày còn lại để vẽ điểm mốc
                 if (!startYMD && endYMD) startYMD = endYMD;
                 if (startYMD && !endYMD) endYMD = startYMD;
 
                 if (startYMD && endYMD) {
-                    // Chống sập nếu Start lớn hơn End
                     if (new Date(startYMD) > new Date(endYMD)) {
                         let temp = startYMD; startYMD = endYMD; endYMD = temp;
                     }
@@ -272,7 +258,7 @@
             
             try {
                 ganttInstance = new Gantt("#gantt-chart", validTasks, {
-                    language: 'vi',
+                    // ĐÃ XÓA DÒNG 'language: vi' GÂY SẬP HỆ THỐNG
                     header_height: 50,
                     column_width: 30,
                     view_mode: 'Month',
@@ -281,7 +267,7 @@
                 });
             } catch(e) {
                 console.error(e);
-                container.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Vẫn còn một dòng dữ liệu ngày bị lỗi đặc biệt. Vui lòng báo cho kỹ thuật.</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Vẫn còn lỗi vẽ biểu đồ. Hãy kiểm tra console.</div>`;
             }
         }
 
